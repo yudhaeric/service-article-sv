@@ -89,6 +89,8 @@ func DeleteArticle(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
 		return
 	}
-	config.DB.Delete(&article)
+
+	// Soft delete 
+	config.DB.Model(&article).Update("status", "thrash")
 	c.JSON(http.StatusOK, gin.H{})
 }
