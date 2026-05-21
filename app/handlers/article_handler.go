@@ -9,12 +9,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ArticleInput defines the structure for incoming request data and its validation rules
+type ArticleInput struct {
+	Title    string `json:"title" binding:"required,min=20"`
+	Content  string `json:"content" binding:"required,min=200"`
+	Category string `json:"category" binding:"required,min=3"`
+	Status   string `json:"status" binding:"required,oneof=publish draft thrash"`
+}
+
 func CreateArticle(c *gin.Context) {
-	var article models.Article
-	if err := c.ShouldBindJSON(&article); err != nil {
+	var input ArticleInput
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	article := models.Article{
+		Title:    input.Title,
+		Content:  input.Content,
+		Category: input.Category,
+		Status:   input.Status,
+	}
+
 	config.DB.Create(&article)
 	c.JSON(http.StatusCreated, gin.H{})
 }
@@ -49,11 +65,20 @@ func UpdateArticle(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
 		return
 	}
-	if err := c.ShouldBindJSON(&article); err != nil {
+
+	var input ArticleInput
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	config.DB.Save(&article)
+
+	config.DB.Model(&article).Updates(models.Article{
+		Title:    input.Title,
+		Content:  input.Content,
+		Category: input.Category,
+		Status:   input.Status,
+	})
+
 	c.JSON(http.StatusOK, gin.H{})
 }
 
