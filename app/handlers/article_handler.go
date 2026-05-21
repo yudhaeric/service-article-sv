@@ -39,12 +39,21 @@ func GetArticles(c *gin.Context) {
 	var articles []models.Article
 	limitStr := c.DefaultQuery("limit", "10")
 	offsetStr := c.DefaultQuery("offset", "0")
+	status := c.Query("status")
 
 	var limit, offset int
 	fmt.Sscanf(limitStr, "%d", &limit)
 	fmt.Sscanf(offsetStr, "%d", &offset)
 
-	config.DB.Limit(limit).Offset(offset).Find(&articles)
+	query := config.DB
+
+	if status == "thrash" {
+		query = query.Unscoped().Where("deleted_at IS NOT NULL")
+	} else if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	query.Limit(limit).Offset(offset).Find(&articles)
 	c.JSON(http.StatusOK, articles)
 }
 
@@ -90,7 +99,6 @@ func DeleteArticle(c *gin.Context) {
 		return
 	}
 
-	// Soft delete 
-	config.DB.Model(&article).Update("status", "thrash")
+	config.DB.Delete(&article)
 	c.JSON(http.StatusOK, gin.H{})
 }
